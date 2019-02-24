@@ -2,6 +2,12 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
+### YML files ###
+environment.yml
+
+### Data directory ###
+data/
+
 # Created by https://www.gitignore.io/api/windows
 # Edit at https://www.gitignore.io/?templates=windows
 
