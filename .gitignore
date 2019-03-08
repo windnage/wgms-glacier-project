@@ -5,8 +5,9 @@
 ### YML files ###
 environment.yml
 
-### Data directory ###
+### Directories ###
 data/
+scripts/__pycache__
 
 # Created by https://www.gitignore.io/api/windows
 # Edit at https://www.gitignore.io/?templates=windows
