@@ -1,7 +1,12 @@
 """
 WGMS Project Module
+Author: Ann Windnagel
+Date: 3/3/2019
 
-This module contains functions that help to process RGI and GLIMS data.
+This module contains functions that help to process RGI and GLIMS data. 
+It currently contains 2 functions:
+* One to open RGI data (open_rgi_region)
+* One to determine if a glacier outline is within a larger glacier region (pip)
 
 """
 
