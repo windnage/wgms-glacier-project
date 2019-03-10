@@ -8,6 +8,7 @@ environment.yml
 ### Directories ###
 data/
 scripts/__pycache__
+notebooks/scratch-space
 
 # Created by https://www.gitignore.io/api/windows
 # Edit at https://www.gitignore.io/?templates=windows
