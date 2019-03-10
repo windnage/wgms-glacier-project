@@ -4,13 +4,16 @@ Author: Ann Windnagel
 Date: 3/3/2019
 
 This module contains functions that help to process RGI and GLIMS data. 
-It currently contains 2 functions:
-* One to open RGI data (open_rgi_region)
-* One to determine if a glacier outline is within a larger glacier region (pip)
+It currently contains 3 functions:
+* open_rgi_region: opens RGI data
+* pip: Determine if a glacier outline is within a larger glacier region
+* split_glims: Split the glims data into the 19 regions
 
 """
 
 import geopandas as gpd
+
+
 
 def open_rgi_region(region_no):
     '''
@@ -59,6 +62,8 @@ def open_rgi_region(region_no):
     
     return rgi_region_df
 
+
+
 def pip(polygon1, polygon2):
     """
     Determines if a polygon is within another polygon (pip - polygon in polygon)
@@ -79,3 +84,37 @@ def pip(polygon1, polygon2):
     pip_mask = polygon1.buffer(0).within(polygon2.loc[0, 'geometry'])
     
     return pip_mask
+
+
+
+def split_glims(data, all_regions, region_name, fp):
+    """
+    Determines which glacier outlines, from the large GLIMS data file, belong to the specified region.
+    Then saves the outlines that reside in that region to its own shapefile for later use.
+
+    Parameters
+    ----------
+    data : Geodataframe containing polygons of all the GLIMS data
+    regions : Geodataframe containing a single polygon of the region you want to check the GLIMS data against.
+    region_name : String containing the name of the region
+    fp : String containing the file path to the location where the region shapefile should be saved.
+
+    Returns
+    -------
+    Nothing. Saves the outlines that reside in the specified region to its own shapefile.
+    """
+    
+    # Select specified region from the regions dataframe and reset index to zero so that it works in pip
+    region = all_regions[all_regions.FULL_NAME == region_name]
+    region.reset_index(drop=True, inplace=True)
+    
+    # Determine which GLIMS outlines reside in specified region
+    pip_mask = pip(data, region)
+
+    # Pass pip_mask into data to get the ones that are in the specified region
+    glims_region = data.loc[pip_mask]
+
+    # Save regional dataframe to shapefile
+    glims_region.to_file(driver='ESRI Shapefile', filename=fp)
+    
+    return
