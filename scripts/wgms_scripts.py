@@ -4,10 +4,11 @@ Author: Ann Windnagel
 Date: 3/3/2019
 
 This module contains functions that help to process RGI and GLIMS data. 
-It currently contains 3 functions:
+It currently contains 4 functions:
 * open_rgi_region: opens RGI data
 * pip: Determine if a glacier outline is within a larger glacier region
 * split_glims: Split the glims data into the 19 regions
+* clean_glims: Clean the glims regional files
 
 """
 
@@ -116,5 +117,50 @@ def split_glims(data, all_regions, region_name, fp):
 
     # Save regional dataframe to shapefile
     glims_region.to_file(driver='ESRI Shapefile', filename=fp)
+    
+    return
+
+def clean_glims(region_glims, fp):
+    """
+    Clean each GLIMS regional file: pull out only the glacier boundaries, remove extra columns, find latest date.
+    Then save the cleaned outlines to its own shapefile for later use.
+
+    Parameters
+    ----------
+    region_glims : Geodataframe containing polygons for one regions of GLIMS data
+    fp : String containing the file path to the location where the region shapefile should be saved.
+
+    Returns
+    -------
+    Nothing. Saves the cleaned outlines to its own shapefile.
+    """
+    
+    # Extract the glacier outlines: line_type = glac_bound
+    glac_bounds = region_glims[region_glims['line_type']=='glac_bound']
+    
+    # Remove columns the are unneeded
+    glac_bounds_trimmed = glac_bounds.drop(
+                          ['line_type', 'anlys_id', 'anlys_time', 'rec_status', 'wgms_id', 
+                          'local_id', 'glac_stat', 'subm_id', 'release_dt', 'proc_desc', 'rc_id', 
+                          'geog_area', 'chief_affl', 'loc_unc_x', 'loc_unc_y', 'glob_unc_x', 
+                          'glob_unc_y', 'submitters', 'analysts'], axis=1)
+    
+    # Find the unique glaciers in region 1 by glac_id
+    unique_glaciers = glac_bounds_trimmed.glac_id.unique()
+    
+    # Find the latest date for each unique glacier and create a new dataframe with just those rows
+    for counter, unique in enumerate(unique_glaciers):
+        glacier = glac_bounds_trimmed[glac_bounds_trimmed['glac_id'] == unique]
+        glacier_latest_date = glacier['src_date'].max()
+        if counter == 0:
+            # Create first instance of glacier_latest_df so that we can append to it later
+            glacier_latest_df = glacier[glacier['src_date'] == glacier_latest_date]
+        else:
+            # Append the other rows to glacier_latest_df
+            glacier_latest_df_part = glacier[glacier['src_date'] == glacier_latest_date]
+            glacier_latest_df = glacier_latest_df.append(glacier_latest_df_part)
+            
+    # Save cleaned dataframe to a shapefile
+    glacier_latest_df.to_file(driver='ESRI Shapefile', filename=fp)
     
     return
