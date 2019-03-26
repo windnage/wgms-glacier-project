@@ -12,7 +12,6 @@ I'm doing this project in conjunction with the [World Glacier Monitoring Service
 
 * geopandas
 * matplotlib
-* earthpy
 * wgms_scripts - This is a custom script that is available in this repository in the scripts directory.
 
 ## Data Used
@@ -26,14 +25,20 @@ by the preparation of the Fifth Assessment Report of the Intergovernmental Panel
   * Glacier regions are useful for regional assessments of glacier change and other parameters. This dataset, provided by the Global Terrestrial Network for Glaciers (GTN-G), defines 19 first-order glacier regions. The GTN-G is the framework for the internationally coordinated monitoring of glaciers and ice caps in support of the United Nations Framework Convention on Climate Change (UNFCCC).
 
 ## Description of Files in this Repository
+Note: Notebooks are named according to the following convention:
+x-operation-data.ipynb
+Where 
+x: A counter for the order that the notebooks should be run in (0 means that the notebook is not required for 
+operation: The processing that is applied to the data in the notebook (clean, compare, explore, or split)
+data: The data that is processed in the notebook (gtng, glims, or rgi)
 
 * README.md: This file. Describes the wgms-glacier-project repository.
-* notebooks/explore-glims.ipynb: This is a notebook with test code to open up GLIMS data files, explore the dataframes, and plot some data. Use this to familiarize yourself with the GLIMS data. It is not required for processing of the data.
-* notebooks/explore-rgi.ipynb: This is a notebook with test code to open up RGI data files, explore the dataframes, and plot some data. Use this to familiarize yourself with the RGI data. It is not required for processing of the data.
-* notebooks/clean-gtng-region-shapefile.ipynb: This notebook cleans the GTN-G_glacier_regions_201707.shp shapefile. There are some extraneous regions in this shapefile and this code removes those. This notebook is required for processing of the data.
-* notebooks/split-glims-into-gtng-regions.ipynb: This notebook splits the one large GLIMS shapefile into 19 different shapefiles based on the 19 GTNG Glacier Regions. This allows for the comparison of GLIMS to the RGI data which come separated into the 19 regions. This notebook is required for processing of the data.
-* notebooks/clean-glims-regions.ipynb: This notebook cleans up the GLIMS data. The glacier outlines in the GLIMS database are multitemporal, so each glacier has many entries. For the analysis to find the largest glaciers in the world, need to go with the latest glacier entry. In addition, GLIMS also has outlines for debris cover and rock outcrops as well as the glacier outlines, so need to pull out only glacier outlines. This notebook is required for processing of the data.
-* notebooks/compare-glims-rgi.ipynb: This notebook does a comparison of GLIMS and RGI data to determine the 10 largest glaciers in each of the 19 world glacier regions. This notebook is required for processing of the data.
+* notebooks/0-explore-glims.ipynb: This is a notebook with test code to open up GLIMS data files, explore the dataframes, and plot some data. Use this to familiarize yourself with the GLIMS data. It is not required for processing of the data.
+* notebooks/0-explore-rgi.ipynb: This is a notebook with test code to open up RGI data files, explore the dataframes, and plot some data. Use this to familiarize yourself with the RGI data. It is not required for processing of the data.
+* notebooks/1-clean-gtng.ipynb: This notebook cleans the GTN-G_glacier_regions_201707.shp shapefile. There are some extraneous regions in this shapefile and this code removes those. This notebook is required for processing of the data.
+* notebooks/2-split-glims.ipynb: This notebook splits the one large GLIMS shapefile into 19 different shapefiles based on the 19 GTNG Glacier Regions. This allows for the comparison of GLIMS to the RGI data which come separated into the 19 regions. This notebook is required for processing of the data.
+* notebooks/3-clean-glims.ipynb: This notebook cleans up the GLIMS data. The glacier outlines in the GLIMS database are multitemporal, so each glacier has many entries. For the analysis to find the largest glaciers in the world, need to go with the latest glacier entry. In addition, GLIMS also has outlines for debris cover and rock outcrops as well as the glacier outlines, so need to pull out only glacier outlines. This notebook is required for processing of the data.
+* notebooks/4-compare-glims-rgi.ipynb: This notebook does a comparison of GLIMS and RGI data to determine the 10 largest glaciers in each of the 19 world glacier regions. This notebook is required for processing of the data.
 * presentations/Global-analysis-of-glaciers.pptx: A PowerPoint presentation with results from this analysis.
 * scripts/wgms_scripts.py: This module contains functions that help to process RGI and GLIMS data.
 It currently contains 3 functions:
@@ -49,14 +54,14 @@ To run these notebooks, you need to have the data listed in the "Data Used" sect
 * GTN-G Regions: data/gtn-g-glacier-regions
 
 Notebooks need to be run in this order:
-* clean-gtng-region-shapefile.ipynb
-* split-glims-into-gtng-regions.ipynb
-* clean-glims-regions.ipynb
-* compare-glims-rgi.ipynb
+* 1-clean-gtng.ipynb
+* 2-split-glims.ipynb
+* 3-clean-glims.ipynb
+* 4-compare-glims-rgi.ipynb
 
 ## Example Usage
 
-* Run clean-gtng-region-shapefile.ipynb. This will clean the raw GTN-G region shapefile and create a directory named "cleaned" under the gtn-g-glacier-regions directory with the cleaned shapefile (GTN-G_glacier_regions_201707_cleaned.shp).
-* Run split-glims-into-gtng-regions.ipynb. This will split the large GLIMS shapefile into the 19 GTN-G regions and create a directory called "processed" under the glims directory with 19 shapefiles, one for each region (e.g. glims_region_1.shp).
-* Run clean-glims-regions.ipynb. This will remove extraneous rows from each of the 19 glims regional shapefiles. It will create a directory named "cleaned" under the glims/processed directory with the 19 cleaned shapefiles (e.g. glims_region_1_cleaned.shp).
-* Run compare-glims-rgi.ipynb. This will open each GLIMS and RGI regional shapefile and pull out the top 10 largest glaciers for each region from each database. These will be printed out in the notebook. Manual inspection of the notebook will be necessary to continue analysist to determine if the lists match and which glaciers are really largest.
+* Run 1-clean-gtng.ipynb. This will clean the raw GTN-G region shapefile and create a directory named "cleaned" under the gtn-g-glacier-regions directory with the cleaned shapefile (GTN-G_glacier_regions_201707_cleaned.shp).
+* Run 2-split-glims.ipynb. This will split the large GLIMS shapefile into the 19 GTN-G regions and create a directory called "processed" under the glims directory with 19 shapefiles, one for each region (e.g. glims_region_1.shp).
+* Run 3-clean-glims.ipynb. This will remove extraneous rows from each of the 19 glims regional shapefiles. It will create a directory named "cleaned" under the glims/processed directory with the 19 cleaned shapefiles (e.g. glims_region_1_cleaned.shp).
+* Run 4-compare-glims-rgi.ipynb. This will open each GLIMS and RGI regional shapefile and pull out the top 10 largest glaciers for each region from each database. These will be printed out in the notebook. Manual inspection of the notebook will be necessary to continue analysist to determine if the lists match and which glaciers are really largest.
