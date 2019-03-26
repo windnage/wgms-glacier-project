@@ -26,10 +26,14 @@ by the preparation of the Fifth Assessment Report of the Intergovernmental Panel
 
 ## Description of Files in this Repository
 Note: Notebooks are named according to the following convention:
+
 x-operation-data.ipynb
-Where 
+Where:
+
 x: A counter for the order that the notebooks should be run in (0 means that the notebook is not required for 
+
 operation: The processing that is applied to the data in the notebook (clean, compare, explore, or split)
+
 data: The data that is processed in the notebook (gtng, glims, or rgi)
 
 * README.md: This file. Describes the wgms-glacier-project repository.
