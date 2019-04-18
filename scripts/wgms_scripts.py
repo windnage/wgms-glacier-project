@@ -13,7 +13,7 @@ It currently contains 4 functions:
 """
 
 import geopandas as gpd
-
+import pandas as pd
 
 
 def open_rgi_region(region_no):
@@ -37,7 +37,7 @@ def open_rgi_region(region_no):
         region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
                              "02_rgi60_WesternCanadaUS/02_rgi60_WesternCanadaUS.shp",
                              "03_rgi60_ArcticCanadaNorth/03_rgi60_ArcticCanadaNorth.shp", 
-                             "04_rgi60_ArcticCanadaNorth/04_rgi60_ArcticCanadaNorth.shp",
+                             "04_rgi60_ArcticCanadaSouth/04_rgi60_ArcticCanadaSouth.shp",
                              "05_rgi60_GreenlandPeriphery/05_rgi60_GreenlandPeriphery.shp",
                              "06_rgi60_Iceland/06_rgi60_Iceland.shp",
                              "07_rgi60_Svalbard/07_rgi60_Svalbard.shp",
@@ -51,12 +51,12 @@ def open_rgi_region(region_no):
                              "15_rgi60_SouthAsiaEast/15_rgi60_SouthAsiaEast.shp",
                              "16_rgi60_LowLatitudes/16_rgi60_LowLatitudes.shp",
                              "17_rgi60_SouthernAndes/17_rgi60_SouthernAndes.shp",
-                             "18_rgi60_NewZealand/18_rgi60_NewZealand.shp"
+                             "18_rgi60_NewZealand/18_rgi60_NewZealand.shp",
                              "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp"]
 
         # Open file 
-        rgi_region_df = gpd.read_file(root_data_dir + region_file_names[region_no-1])
         print(region_file_names[region_no-1])
+        rgi_region_df = gpd.read_file(root_data_dir + region_file_names[region_no-1])
     else:
         rgi_region_df = "-999"
         print("Specified region does not exist.")
@@ -164,3 +164,69 @@ def clean_glims(region_glims, fp):
     glacier_latest_df.to_file(driver='ESRI Shapefile', filename=fp)
     
     return
+
+def print_10_largest_glims(region_no):
+    """
+    Opens and prints the list of 10 largest glaciers for a specified region for GLIMS and
+    returns the data as a pandas dataframe.
+
+    Parameters
+    ----------
+    region_no : The region number as an integer. Accepted values are 1 through 19.
+
+    Returns
+    -------
+    glims_largest : A pandas dataframe with a list of the 10 largest glaciers for the specified region
+    """
+    
+    # Create a list with all the region names
+    region_names = ["Alaska", "Western Canada and USA",
+                    "Arctic Canada, North", "Arctic Canada, South",
+                    "Greenland Periphery", "Iceland", "Svalbard and Jan Mayen",
+                    "Scandinavia", "Russian Arctic", "Asia, North", "Central Europe",
+                    "Caucasus and Middle East", "Asia, Central", "Asia, South West",
+                    "Asia, South East", "Low Latitudes", "Southern Andes", "New Zealand", 
+                    "Antarctic and Subantarctic"]
+    
+    # Open GLIMS csv file for specified region with 10 largest glaciers
+    glims_largest_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.csv"
+    glims_largest = pd.read_csv(glims_largest_fp)
+    print('GLIMS 10 Largest glaciers and their size for Region ' + str(region_no) + ' - ' + region_names[region_no-1] + ':')
+    print('')
+    print('      Glacier ID               Area (m^2)      Glacier Name       Date of Measurement')
+    print(glims_largest.to_string(header=False, index=False, col_space=20))
+    
+    return glims_largest
+
+def print_10_largest_rgi(region_no):
+    """
+    Opens and prints the list of 10 largest glaciers for a specified region for RGI and
+    returns the data as a pandas dataframe.
+
+    Parameters
+    ----------
+    region_no : The region number as an integer. Accepted values are 1 through 19.
+
+    Returns
+    -------
+    rgi_largest : A pandas dataframe with a list of the 10 largest glaciers for the specified region
+    """
+    
+    # Create a list with all the region names
+    region_names = ["Alaska", "Western Canada and USA",
+                    "Arctic Canada, North", "Arctic Canada, South",
+                    "Greenland Periphery", "Iceland", "Svalbard and Jan Mayen",
+                    "Scandinavia", "Russian Arctic", "Asia, North", "Central Europe",
+                    "Caucasus and Middle East", "Asia, Central", "Asia, South West",
+                    "Asia, South East", "Low Latitudes", "Southern Andes", "New Zealand", 
+                    "Antarctic and Subantarctic"]
+    
+    # Open RGI csv file for specified region with 10 largest glaciers
+    rgi_largest_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.csv"
+    rgi_largest = pd.read_csv(rgi_largest_fp)
+    print('RGI 10 Largest glaciers and their size for Region ' + str(region_no) + ' - ' + region_names[region_no-1] + ':')
+    print('')
+    print('      Glacier ID               Area (m^2)      Glacier Name       Date of Measurement')
+    print(rgi_largest.to_string(header=False, index=False, col_space=20))
+    
+    return rgi_largest
