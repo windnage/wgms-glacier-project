@@ -193,7 +193,7 @@ def print_10_largest_glims(region_no):
     glims_largest = pd.read_csv(glims_largest_fp)
     print('GLIMS 10 Largest glaciers and their size for Region ' + str(region_no) + ' - ' + region_names[region_no-1] + ':')
     print('')
-    print('      Glacier ID               Area (m^2)      Glacier Name       Date of Measurement')
+    print('      Glacier ID               Area (km^2)      Glacier Name       Date of Measurement')
     print(glims_largest.to_string(header=False, index=False, col_space=20))
     
     return glims_largest
@@ -226,7 +226,7 @@ def print_10_largest_rgi(region_no):
     rgi_largest = pd.read_csv(rgi_largest_fp)
     print('RGI 10 Largest glaciers and their size for Region ' + str(region_no) + ' - ' + region_names[region_no-1] + ':')
     print('')
-    print('      Glacier ID               Area (m^2)      Glacier Name       Date of Measurement')
+    print('      Glacier ID               Area (km^2)      Glacier Name       Date of Measurement')
     print(rgi_largest.to_string(header=False, index=False, col_space=20))
     
     return rgi_largest
