@@ -2,7 +2,7 @@
 This is a repository for a glacier statistics project with the World Glacier Monitoring Service (WGMS). The goal of the project is to determine global statistics about glaciers such as largest glaciers in the world, fastest retreating glaciers, and glaciers that have disappeared for the 19 recognized glacial regions of the world. The project uses two glacier databases for the analysis: Global Land Ice Measurements from Space (GLIMS) and the Randolf Glacier Inventory (RGI).
 
 ## Background
-Glaciers are retreating at an alarming rate. Montana’s Glacier National Park had 150 glaciers in 1850; today only 25 remain and they are shrinking. Muir glacier in Alaska has retreated 31 miles since 1892 and is now only a fraction of its former grandeur measuring at only 11 miles long, today. 
+Glaciers are retreating at an alarming rate. Montana’s Glacier National Park had 150 glaciers in 1850; today only 25 remain and they are shrinking. Muir glacier in Alaska has retreated 31 miles since 1892 and is now only a fraction of its former grandeur measuring at only 11 miles long, today.
 
 Not only are glaciers a beautiful part of our landscape that are disappearing but in many parts of the world glaciers are a source of fresh water and energy through the use of the melt water. As these glaciers retreat, these nations will be out of water or need to find alternative forms of energy. Studying glaciers helps to inform our knowledge of climate change and helps water and energy resource managers plan for the future. Researchers have performed many regional studies of glaciers; however, global studies are scarce. Therefore, I am doing a global assessment of glaciers and glacial retreat to further our knowledge of these important natural resources on a worldwide scale. The outcome of the project will be an education and outreach blog post to help to inform people of the changes occurring in glaciers across the globe.
 
@@ -12,6 +12,7 @@ I'm doing this project in conjunction with the [World Glacier Monitoring Service
 
 * geopandas
 * matplotlib
+* earthpy
 * wgms_scripts - This is a custom script that is available in this repository in the scripts directory.
 
 ## Data Used
@@ -30,7 +31,7 @@ Note: Notebooks are named according to the following convention:
 x-operation-data.ipynb
 Where:
 
-x: A counter for the order that the notebooks should be run in (0 means that the notebook is not required for 
+x: A counter for the order that the notebooks should be run in (0 means that the notebook is not required for
 
 operation: The processing that is applied to the data in the notebook (clean, compare, explore, or split)
 
@@ -43,6 +44,10 @@ data: The data that is processed in the notebook (gtng, glims, or rgi)
 * notebooks/2-split-glims.ipynb: This notebook splits the one large GLIMS shapefile into 19 different shapefiles based on the 19 GTNG Glacier Regions. This allows for the comparison of GLIMS to the RGI data which come separated into the 19 regions. This notebook is required for processing of the data.
 * notebooks/3-clean-glims.ipynb: This notebook cleans up the GLIMS data. The glacier outlines in the GLIMS database are multitemporal, so each glacier has many entries. For the analysis to find the largest glaciers in the world, need to go with the latest glacier entry. In addition, GLIMS also has outlines for debris cover and rock outcrops as well as the glacier outlines, so need to pull out only glacier outlines. This notebook is required for processing of the data.
 * notebooks/4-compare-glims-rgi.ipynb: This notebook does a comparison of GLIMS and RGI data to determine the 10 largest glaciers in each of the 19 world glacier regions. This notebook is required for processing of the data.
+* notebooks/5-dissolve-glaciers.ipynb: This notebook creates the ice cap polygons and dissolves them into one.
+* notebooks/6-multi-temporal-glims-3-largest.ipynb: This notebook extracts the dates for all the measurements of the GLIMS glaciers.
+* presentations/largest-glacier-presentation.ipynb: This notebook is where all of the analysis takes place and brings together all of the files created from the notebooks in the notebooks directory.
+* presentations/largest-glaciers-blog-post.ipynb: A short blog post of the findings of this analysis.
 * presentations/Global-analysis-of-glaciers.pptx: A PowerPoint presentation with results from this analysis.
 * scripts/wgms_scripts.py: This module contains functions that help to process RGI and GLIMS data.
 It currently contains 3 functions:
@@ -62,6 +67,8 @@ Notebooks need to be run in this order:
 * 2-split-glims.ipynb
 * 3-clean-glims.ipynb
 * 4-compare-glims-rgi.ipynb
+* 5-dissolve-glaciers.ipynb
+* 6-multi-temporal-glims-3-largest.ipynb (not required for this analysis)
 
 ## Example Usage
 
@@ -69,3 +76,5 @@ Notebooks need to be run in this order:
 * Run 2-split-glims.ipynb. This will split the large GLIMS shapefile into the 19 GTN-G regions and create a directory called "processed" under the glims directory with 19 shapefiles, one for each region (e.g. glims_region_1.shp).
 * Run 3-clean-glims.ipynb. This will remove extraneous rows from each of the 19 glims regional shapefiles. It will create a directory named "cleaned" under the glims/processed directory with the 19 cleaned shapefiles (e.g. glims_region_1_cleaned.shp).
 * Run 4-compare-glims-rgi.ipynb. This will open each GLIMS and RGI regional shapefile and pull out the top 10 largest glaciers for each region from each database. These will be printed out in the notebook. Manual inspection of the notebook will be necessary to continue analysist to determine if the lists match and which glaciers are really largest.
+* Run 5-dissolve-glaciers.ipynb: This will create all of the ice cap outlines and calculate their areas.
+* Run largest-glacier-presentation.ipynb: This will create the results of the analysis by combining all the data files from the above notebooks.
