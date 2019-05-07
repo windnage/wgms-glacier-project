@@ -5,10 +5,22 @@ Date: 3/3/2019
 
 This module contains functions that help to process RGI and GLIMS data. 
 It currently contains 4 functions:
-* open_rgi_region: opens RGI data
+* open_rgi_region: Opens RGI data file for a particular region
+* open_clean_glims: Opens a cleaned GLIMS data file for a particular region
 * pip: Determine if a glacier outline is within a larger glacier region
 * split_glims: Split the glims data into the 19 regions
 * clean_glims: Clean the glims regional files
+* print_10_largest_glims: Prints the ten largest glaciers for a particular region for GLIMS
+* print_10_largest_rgi: Prints the ten largest glaciers for a particular region for RGI
+* multi_temporal_glims: Finds all the dates that the largest 3 glaciers have measurements 
+  for each of the 19 regions from GLIMS.
+* find_glacier_all_glims: Extract the data rows for a particular glacier from the full GLIMS database, 
+  which contains all temporal measurements.
+* find_glacier_clean_glims: Extract the data rows for a particular glacier from the cleaned 
+  GLIMS database, which contains only the latest measurements. 
+* ten_largest: Finds the 10 largest glaciers in a region and saves them to a csv file
+* save_3_largest: Saves the 3 largest glacier outlines in a region to a shapefile
+
 
 """
 
@@ -413,7 +425,7 @@ def ten_largest(data, region_no, source):
 
 def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
     '''
-    Saves the 3 largest GLIMS glacier outlines in a region to a shapefile
+    Saves the 3 largest glacier outlines in a region to a shapefile
 
     Parameters
     ----------
