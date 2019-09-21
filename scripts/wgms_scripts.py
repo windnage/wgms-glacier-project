@@ -20,6 +20,7 @@ It currently contains 4 functions:
   GLIMS database, which contains only the latest measurements. 
 * ten_largest: Finds the 10 largest glaciers in a region and saves them to a csv file
 * save_3_largest: Saves the 3 largest glacier outlines in a region to a shapefile
+* explode_glaciers: merges all glaciers that touch each other
 
 
 """
@@ -27,6 +28,9 @@ It currently contains 4 functions:
 import geopandas as gpd
 import pandas as pd
 import os
+import fiona
+from shapely.ops import cascaded_union
+from shapely.geometry import shape, mapping
 
 
 def open_rgi_region(region_no):
@@ -457,4 +461,45 @@ def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
         # Save 3 largest from specified region to shapefile
         largest_3.to_file(driver='ESRI Shapefile', filename=largest_3_fp)
     
+    return
+
+def explode_glaciers(region_no):
+    '''
+    Explodes (merges) all glacier polygons that touch one another into one polygon because these are part of a glacier catchment
+    
+    Parameters
+    ----------
+    region_no : Integer region number of the region with the polygons that need to be exploded, Accepted values are 1 through 19.
+    
+    Returns : 
+    nothing: Saves a file of exploded shapefiles
+    '''
+    
+    filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
+
+    with fiona.open(filename, 'r') as ds_in:
+        crs = ds_in.crs
+        drv = ds_in.driver
+
+        geoms = []
+        for x in ds_in:
+            geom = shape(x["geometry"])
+            if not geom.is_valid:
+                geom = geom.buffer(0)
+
+            geoms.append(geom)
+
+        dissolved = cascaded_union(geoms)
+
+    schema = {
+        "geometry": "Polygon",
+        "properties": {"id": "int"}
+    }
+
+    output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+
+    with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
+        for i, g in enumerate(dissolved):
+            ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+            
     return
