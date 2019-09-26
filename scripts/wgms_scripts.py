@@ -475,31 +475,37 @@ def explode_glaciers(region_no):
     nothing: Saves a file of exploded shapefiles
     '''
     
-    filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
-
-    with fiona.open(filename, 'r') as ds_in:
-        crs = ds_in.crs
-        drv = ds_in.driver
-
-        geoms = []
-        for x in ds_in:
-            geom = shape(x["geometry"])
-            if not geom.is_valid:
-                geom = geom.buffer(0)
-
-            geoms.append(geom)
-
-        dissolved = cascaded_union(geoms)
-
-    schema = {
-        "geometry": "Polygon",
-        "properties": {"id": "int"}
-    }
-
+    # Set up out put filename
     output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+    
+    # Check that the region hasn't already been processed
+    if os.path.exists(output_fn) == False:
+        print(region_no)
+        filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
 
-    with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
-        for i, g in enumerate(dissolved):
-            ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+        with fiona.open(filename, 'r') as ds_in:
+            crs = ds_in.crs
+            drv = ds_in.driver
+
+            geoms = []
+            for x in ds_in:
+                geom = shape(x["geometry"])
+                if not geom.is_valid:
+                    geom = geom.buffer(0)
+
+                geoms.append(geom)
+
+            dissolved = cascaded_union(geoms)
+
+        schema = {
+            "geometry": "Polygon",
+            "properties": {"id": "int"}
+        }
+
+        with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
+            for i, g in enumerate(dissolved):
+                ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+    else:
+        print("Region " + str(region_no) + " has already been processed")
             
     return
