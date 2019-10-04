@@ -21,6 +21,7 @@ It currently contains 4 functions:
 * ten_largest: Finds the 10 largest glaciers in a region and saves them to a csv file
 * save_3_largest: Saves the 3 largest glacier outlines in a region to a shapefile
 * explode_glaciers: merges all glaciers that touch each other
+* ten_largest_icecaps: Finds the 10 largest ice caps in a region and saves them to a csv file
 
 
 """
@@ -508,4 +509,31 @@ def explode_glaciers(region_no):
     else:
         print("Region " + str(region_no) + " has already been processed")
             
+    return
+
+def ten_largest_icecaps(data, region_no, source):
+    '''
+    Finds the 10 largest ice caps in a region and saves them to a csv file
+
+    Parameters
+    ----------
+    data : Geodataframe containing all glacier polygons for a region
+    region_no : Integer with the region number. Accepted values are 1 through 19.
+    source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
+
+    Returns
+    ----------
+    nothing: Saves a csv file of the 10 largest ice caps for a region
+    '''
+    
+    
+    # Find 10 largest
+    ten_largest_df = data[['glac_id', 'db_area', 'glac_name', 'src_date']].nlargest(10, 'db_area')
+     
+    # Save to csv file if it doesn't already exist
+    glims_largest_csv_fp = "data/glims/processed/ice-caps/largest/glims_region_" + str(region_no) + "_largest.csv"
+    if os.path.exists(glims_largest_csv_fp) == False:
+        print(region_no)
+        ten_largest_df.to_csv(glims_largest_csv_fp, index=False)
+        
     return
