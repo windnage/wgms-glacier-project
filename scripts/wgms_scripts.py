@@ -513,6 +513,7 @@ def explode_glaciers(region_no):
 
 def ten_largest_icecaps(data, region_no, source):
     '''
+    This funiton is still TBD. This is just a copy of the ten_largest function at the moment.
     Finds the 10 largest ice caps in a region and saves them to a csv file
 
     Parameters
@@ -528,7 +529,7 @@ def ten_largest_icecaps(data, region_no, source):
     
     
     # Find 10 largest
-    ten_largest_df = data[['glac_id', 'db_area', 'glac_name', 'src_date']].nlargest(10, 'db_area')
+    ten_largest_ic_df = data[['glac_id', 'db_area', 'glac_name', 'src_date']].nlargest(10, 'db_area')
      
     # Save to csv file if it doesn't already exist
     glims_largest_csv_fp = "data/glims/processed/ice-caps/largest/glims_region_" + str(region_no) + "_largest.csv"
