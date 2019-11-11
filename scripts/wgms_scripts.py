@@ -51,7 +51,7 @@ def open_rgi_region(region_no):
     root_data_dir = "data/rgi/raw/"
 
     if region_no >= 1 and region_no <=19:        
-        # List of region shapefile names
+        # List of RGI region shapefile names
         region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
                              "02_rgi60_WesternCanadaUS/02_rgi60_WesternCanadaUS.shp",
                              "03_rgi60_ArcticCanadaNorth/03_rgi60_ArcticCanadaNorth.shp", 
@@ -464,50 +464,110 @@ def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
     
     return
 
-def explode_glaciers(region_no):
+def explode_glaciers(region_no, source):
     '''
     Explodes (merges) all glacier polygons that touch one another into one polygon because these are part of a glacier catchment
     
     Parameters
     ----------
     region_no : Integer region number of the region with the polygons that need to be exploded, Accepted values are 1 through 19.
+    source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
     
     Returns : 
     nothing: Saves a file of exploded shapefiles
     '''
+    if source == 'GLIMS':
+        # Set up output filename
+        output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
     
-    # Set up out put filename
-    output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+        # Check that the region hasn't already been processed
+        if os.path.exists(output_fn) == False:
+            print(str(source) + " " + str(region_no))
+            filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
+
+            with fiona.open(filename, 'r') as ds_in:
+                crs = ds_in.crs
+                drv = ds_in.driver
+
+                geoms = []
+                for x in ds_in:
+                    geom = shape(x["geometry"])
+                    if not geom.is_valid:
+                        geom = geom.buffer(0)
+
+                    geoms.append(geom)
+
+                dissolved = cascaded_union(geoms)
+
+            schema = {
+                "geometry": "Polygon",
+                "properties": {"id": "int"}
+            }
+
+            with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
+                for i, g in enumerate(dissolved):
+                    ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+        else:
+            print(str(source) + " Region " + str(region_no) + " has already been processed")
+            
+    elif source == 'RGI':
+        # Set up RGI output filename
+        output_fn = "data/rgi/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+        
+        # List of RGI region shapefile names
+        region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
+                             "02_rgi60_WesternCanadaUS/02_rgi60_WesternCanadaUS.shp",
+                             "03_rgi60_ArcticCanadaNorth/03_rgi60_ArcticCanadaNorth.shp", 
+                             "04_rgi60_ArcticCanadaSouth/04_rgi60_ArcticCanadaSouth.shp",
+                             "05_rgi60_GreenlandPeriphery/05_rgi60_GreenlandPeriphery.shp",
+                             "06_rgi60_Iceland/06_rgi60_Iceland.shp",
+                             "07_rgi60_Svalbard/07_rgi60_Svalbard.shp",
+                             "08_rgi60_Scandinavia/08_rgi60_Scandinavia.shp",
+                             "09_rgi60_RussianArctic/09_rgi60_RussianArctic.shp",
+                             "10_rgi60_NorthAsia/10_rgi60_NorthAsia.shp",
+                             "11_rgi60_CentralEurope/11_rgi60_CentralEurope.shp",
+                             "12_rgi60_CaucasusMiddleEast/12_rgi60_CaucasusMiddleEast.shp",
+                             "13_rgi60_CentralAsia/13_rgi60_CentralAsia.shp",
+                             "14_rgi60_SouthAsiaWest/14_rgi60_SouthAsiaWest.shp",
+                             "15_rgi60_SouthAsiaEast/15_rgi60_SouthAsiaEast.shp",
+                             "16_rgi60_LowLatitudes/16_rgi60_LowLatitudes.shp",
+                             "17_rgi60_SouthernAndes/17_rgi60_SouthernAndes.shp",
+                             "18_rgi60_NewZealand/18_rgi60_NewZealand.shp",
+                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp"]        
     
-    # Check that the region hasn't already been processed
-    if os.path.exists(output_fn) == False:
-        print(region_no)
-        filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
+        # Check that the region hasn't already been processed
+        if os.path.exists(output_fn) == False:
+            print(str(source) + " " + str(region_no))
+            filename = "data/rgi/raw/" + region_file_names[region_no-1]
+            print(filename)
 
-        with fiona.open(filename, 'r') as ds_in:
-            crs = ds_in.crs
-            drv = ds_in.driver
+            with fiona.open(filename, 'r') as ds_in:
+                crs = ds_in.crs
+                drv = ds_in.driver
 
-            geoms = []
-            for x in ds_in:
-                geom = shape(x["geometry"])
-                if not geom.is_valid:
-                    geom = geom.buffer(0)
+                geoms = []
+                for x in ds_in:
+                    geom = shape(x["geometry"])
+                    if not geom.is_valid:
+                        geom = geom.buffer(0)
 
-                geoms.append(geom)
+                    geoms.append(geom)
 
-            dissolved = cascaded_union(geoms)
+                dissolved = cascaded_union(geoms)
 
-        schema = {
-            "geometry": "Polygon",
-            "properties": {"id": "int"}
-        }
+            schema = {
+                "geometry": "Polygon",
+                "properties": {"id": "int"}
+            }
 
-        with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
-            for i, g in enumerate(dissolved):
-                ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+            with fiona.open(output_fn, 'w', driver=drv, schema=schema, crs=crs) as ds_dst:
+                for i, g in enumerate(dissolved):
+                    ds_dst.write({"geometry": mapping(g), "properties": {"id": i}})
+        else:
+            print(str(source) + " Region " + str(region_no) + " has already been processed")
+            
     else:
-        print("Region " + str(region_no) + " has already been processed")
+        print("Incorrect source input")
             
     return
 
