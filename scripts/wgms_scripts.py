@@ -22,6 +22,7 @@ It currently contains 4 functions:
 * save_3_largest: Saves the 3 largest glacier outlines in a region to a shapefile
 * explode_glaciers: merges all glaciers that touch each other
 * ten_largest_icecaps: Finds the 10 largest ice caps in a region and saves them to a csv file
+* reproject_raster: Reprojects a raster .tif file from one crs to another
 
 
 """
@@ -32,6 +33,9 @@ import os
 import fiona
 from shapely.ops import cascaded_union
 from shapely.geometry import shape, mapping
+import rasterio as rio
+from rasterio.plot import plotting_extent
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 
 def open_rgi_region(region_no):
@@ -412,6 +416,8 @@ def ten_largest(data, region_no, source):
         if os.path.exists(glims_largest_csv_fp) == False:
             print(region_no)
             ten_largest_df.to_csv(glims_largest_csv_fp, index=False)
+        else:
+            print("GLIMS Region " + str(region_no) + " largest 10 CSV file already exists")
         
     elif source == 'RGI':
         # Find 10 largest
@@ -422,6 +428,8 @@ def ten_largest(data, region_no, source):
         if os.path.exists(rgi_largest_csv_fp) == False:
             print(region_no)
             ten_largest_df.to_csv(rgi_largest_csv_fp, index=False)
+        else:
+            print("RGI Region " + str(region_no) + " largest 10 CSV file already exists")
         
     else:
         print("Incorrect source input")
@@ -456,8 +464,8 @@ def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
     
     # Check if the file already exists; if it does not, save file.
     if os.path.exists(largest_3_fp) == False:
-        # Concatenate the 3 biggest into one dataframe
-        largest_3 = gpd.GeoDataFrame(pd.concat([largest_1_df, largest_2_df, largest_3_df]))
+        # Append the 3 biggest into one dataframe
+        largest_3 = largest_1_df.append([largest_2_df, largest_3_df], ignore_index=True)
 
         # Save 3 largest from specified region to shapefile
         largest_3.to_file(driver='ESRI Shapefile', filename=largest_3_fp)
@@ -573,7 +581,7 @@ def explode_glaciers(region_no, source):
 
 def ten_largest_icecaps(data, region_no, source):
     '''
-    This funiton is still TBD. This is just a copy of the ten_largest function at the moment.
+    Need to test if this function works - 11/22/19
     Finds the 10 largest ice caps in a region and saves them to a csv file
 
     Parameters
@@ -597,4 +605,44 @@ def ten_largest_icecaps(data, region_no, source):
         print(region_no)
         ten_largest_df.to_csv(glims_largest_csv_fp, index=False)
         
+    return
+
+def reproject_raster(inpath, outpath, new_crs):
+    '''
+    This funiton reprojects a raster .tif file from one crs to another.
+
+    Parameters
+    ----------
+    inpath : String containing the path and filename to the input raster .tif file
+    outpath : String containing the path and filename to the output raster .tif file
+    new_crs :  String with the new crs to be reprojected to. Ex: 'EPSG:3049'
+
+    Returns
+    ----------
+    nothing: Saves a new .tif file in the new crs
+    '''    
+    dst_crs = new_crs
+
+    with rio.open(inpath) as src:
+        transform, width, height = calculate_default_transform(
+            src.crs, new_crs, src.width, src.height, *src.bounds)
+        kwargs = src.meta.copy()
+        kwargs.update({
+            'crs': new_crs,
+            'transform': transform,
+            'width': width,
+            'height': height
+        })
+
+        with rio.open(outpath, 'w', **kwargs) as dst:
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rio.band(src, i),
+                    destination=rio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=new_crs,
+                    resampling=Resampling.nearest)
+     
     return
