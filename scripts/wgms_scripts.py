@@ -469,6 +469,9 @@ def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
 
         # Save 3 largest from specified region to shapefile
         largest_3.to_file(driver='ESRI Shapefile', filename=largest_3_fp)
+        
+    else:
+        print(largest_3_fp + " file already exists")
     
     return
 
