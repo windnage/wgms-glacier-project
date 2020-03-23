@@ -1,0 +1,41 @@
+name: wgms-project-python
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.7
+  - pip
+  # Core scientific python
+  - numpy
+  - matplotlib
+  - pyqt
+  - seaborn
+  - tqdm
+  - kiwisolver
+
+  # Spatial packages
+  #- rasterio  
+  - pysal
+  - pyproj
+  - rasterstats
+  - geopy
+  - cartopy
+  #- geopandas
+  - contextily
+  - earthpy
+  - folium
+  - geojson
+  - mapboxgl
+  - geocoder
+
+  # Jupyter Environment
+  - autopep8
+  - jupyterlab
+  - notebook 
+  # Do we need this?
+  - ipython
+  - jupyter_contrib_nbextensions
+  - nbclean
+  
+
