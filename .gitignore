@@ -2,9 +2,6 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-### YML files ###
-environment.yml
-
 ### Directories ###
 data/
 scripts/__pycache__

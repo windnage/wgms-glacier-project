@@ -23,6 +23,7 @@ It currently contains 4 functions:
 * explode_glaciers: merges all glaciers that touch each other
 * ten_largest_icecaps: Finds the 10 largest ice caps in a region and saves them to a csv file
 * reproject_raster: Reprojects a raster .tif file from one crs to another
+* zipshp: zip up shapefiles
 
 
 """
@@ -36,6 +37,7 @@ from shapely.geometry import shape, mapping
 import rasterio as rio
 from rasterio.plot import plotting_extent
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+import zipfile
 
 
 def open_rgi_region(region_no):
@@ -649,3 +651,67 @@ def reproject_raster(inpath, outpath, new_crs):
                     resampling=Resampling.nearest)
      
     return
+
+def zipshp(inShp, Delete = True):
+ 
+    """
+    Creates a zip file containing the input shapefile
+    inputs -
+    inShp: Full path to shapefile to be zipped
+    Delete: Set to True to delete shapefile files after zip
+    """
+     
+    #List of shapefile file extensions
+    extensions = [".shp",
+                  ".shx",
+                  ".dbf",
+                  ".sbn",
+                  ".sbx",
+                  ".fbn",
+                  ".fbx",
+                  ".ain",
+                  ".aih",
+                  ".atx",
+                  ".ixs",
+                  ".mxs",
+                  ".prj",
+                  ".xml",
+                  ".cpg",
+                  ".shp.xml"]
+ 
+    #Directory of shapefile
+    inLocation = os.path.dirname (inShp)
+    #Base name of shapefile
+    inName = os.path.basename (os.path.splitext (inShp)[0])
+    #Create zipfile name
+    zipfl = os.path.join (inLocation, inName + ".zip")
+    #Create zipfile object
+    ZIP = zipfile.ZipFile (zipfl, "w")
+ 
+    #Empty list to store files to delete
+    delFiles = []
+     
+    #Iterate files in shapefile directory
+    for fl in os.listdir (inLocation):
+        #Iterate extensions
+        for extension in extensions:
+            #Check if file is shapefile file
+            if fl == inName + extension:
+                #Get full path of file
+                inFile = os.path.join (inLocation, fl)
+                #Add file to delete files list
+                delFiles += [inFile]
+                #Add file to zipfile
+                ZIP.write (inFile, fl)
+                break
+ 
+    #Delete shapefile if indicated
+    if Delete == True:
+        for fl in delFiles:
+            os.remove (fl)
+ 
+    #Close zipfile object
+    ZIP.close()
+ 
+    #Return zipfile full path
+    return zipfl
