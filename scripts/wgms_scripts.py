@@ -19,7 +19,7 @@ It currently contains 4 functions:
 * find_glacier_clean_glims: Extract the data rows for a particular glacier from the cleaned 
   GLIMS database, which contains only the latest measurements. 
 * ten_largest: Finds the 10 largest glaciers in a region and saves them to a csv file
-* save_3_largest: Saves the 3 largest glacier outlines in a region to a shapefile
+* save_5_largest: Saves the 5 largest glacier outlines in a region to a shapefile
 * explode_glaciers: merges all glaciers that touch each other
 * ten_largest_icecaps: Finds the 10 largest ice caps in a region and saves them to a csv file
 * reproject_raster: Reprojects a raster .tif file from one crs to another
@@ -438,42 +438,45 @@ def ten_largest(data, region_no, source):
     
     return
 
-def save_3_largest(largest_1_df, largest_2_df, largest_3_df, region_no, source):
+def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, largest_5_df, region_no, source):
     '''
-    Saves the 3 largest glacier outlines in a region to a shapefile
+    Saves the 5 largest glacier outlines in a region to a shapefile
 
     Parameters
     ----------
     largest_1_df : Geodataframe containing the first largest glacier polygon for a region
     largest_2_df : Geodataframe containing the second largest glacier polygon for a region
     largest_3_df : Geodataframe containing the third largest glacier polygon for a region
+    largest_4_df : Geodataframe containing the fourth largest glacier polygon for a region
+    largest_5_df : Geodataframe containing the fifth largest glacier polygon for a region
     region_no : Integer with the region number. Accepted values are 1 through 19
     source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
 
     Returns
     ----------
-    nothing: Saves a shapefile 3 largest GLIMS glaciers for a region
+    nothing: Saves a shapefile 5 largest GLIMS glaciers for a region
     '''    
     
     # Set file path based on source selected
     if source == 'GLIMS':
-        largest_3_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.shp"
+        largest_5_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.shp"
     elif source == 'RGI':
-        largest_3_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.shp"
+        largest_5_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.shp"
     else:
         print("Incorrect source input")
         return
     
     # Check if the file already exists; if it does not, save file.
-    if os.path.exists(largest_3_fp) == False:
-        # Append the 3 biggest into one dataframe
-        largest_3 = largest_1_df.append([largest_2_df, largest_3_df], ignore_index=True)
+    if os.path.exists(largest_5_fp) == False:
+        print("Creating file " + largest_5_fp)
+        # Append the 5 biggest into one dataframe
+        largest_5 = largest_1_df.append([largest_2_df, largest_3_df, largest_4_df, largest_5_df], ignore_index=True)
 
         # Save 3 largest from specified region to shapefile
-        largest_3.to_file(driver='ESRI Shapefile', filename=largest_3_fp)
+        largest_5.to_file(driver='ESRI Shapefile', filename=largest_5_fp)
         
     else:
-        print(largest_3_fp + " file already exists")
+        print(largest_5_fp + " file already exists")
     
     return
 
