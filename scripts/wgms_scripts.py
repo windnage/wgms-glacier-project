@@ -192,6 +192,9 @@ def clean_glims(region_glims, fp):
     # Extract the glacier outlines: line_type = glac_bound
     glac_bounds = region_glims[region_glims['line_type']=='glac_bound']
     
+    # Extract region number from the filepath (fp). Note this code is only being added to address the Region 13 GLIMS issue
+    region_no = fp[42:44]
+    
     # Remove columns the are unneeded
     glac_bounds_trimmed = glac_bounds.drop(
                           ['line_type', 'anlys_id', 'anlys_time', 'rec_status', 'wgms_id', 
@@ -210,6 +213,12 @@ def clean_glims(region_glims, fp):
             # Create first instance of glacier_latest_df so that we can append to it later
             glacier_latest_df = glacier[glacier['src_date'] == glacier_latest_date]
         else:
+            # Address error in GLIMS Region 13 G072126E38989N glacier
+            if (region_no == '13') and (unique == 'G072126E38989N'):
+                print('Fixing G072126E38989N')
+                glacier = glacier.drop([10927, 98745])
+                glacier_latest_date = glacier['src_date'].max()
+                print(glacier_latest_date)
             # Append the other rows to glacier_latest_df
             glacier_latest_df_part = glacier[glacier['src_date'] == glacier_latest_date]
             glacier_latest_df = glacier_latest_df.append(glacier_latest_df_part)
