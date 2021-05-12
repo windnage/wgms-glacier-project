@@ -503,12 +503,18 @@ def explode_glaciers(region_no, source):
     '''
     if source == 'GLIMS':
         # Set up output filename
-        output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+        if region_no == 19:
+            output_fn = "data/glims/processed/ice-caps/exploded/exploded_huber_" + str(region_no) + ".shp"
+        else:
+            output_fn = "data/glims/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
     
         # Check that the region hasn't already been processed
         if os.path.exists(output_fn) == False:
             print(str(source) + " " + str(region_no))
-            filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
+            if region_no == 19:
+                filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_huber_cleaned.shp"
+            else:
+                filename = "data/glims/processed/cleaned/glims_region_" + str(region_no) + "_cleaned.shp"
 
             with fiona.open(filename, 'r') as ds_in:
                 crs = ds_in.crs
