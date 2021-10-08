@@ -1,3 +1,5 @@
+# This is from
+# https://stackoverflow.com/questions/47038407/dissolve-overlapping-polygons-with-gdal-ogr-while-keeping-non-connected-result
 import fiona
 from shapely.ops import cascaded_union
 from shapely.geometry import shape, mapping
