@@ -43,10 +43,12 @@ import zipfile
 def open_rgi_region(region_no):
     '''
     Opens RGI shapefile for one of 19 glacial regions
+    Note - To open the region 5 cleaned shapefile, need set region_no to 20
 
     Parameters
     ----------
-    region_no : The region number as an integer. Accepted values are 1 through 19.
+    region_no : The region number as an integer. Accepted values are 1 through 20.
+                Note - To open the region 5 cleaned shapefile, need set region_no to 20
 
     Returns
     ----------
@@ -56,7 +58,7 @@ def open_rgi_region(region_no):
     # root data directory
     root_data_dir = "data/rgi/raw/"
 
-    if region_no >= 1 and region_no <=19:        
+    if region_no >= 1 and region_no <=20:        
         # List of RGI region shapefile names
         region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
                              "02_rgi60_WesternCanadaUS/02_rgi60_WesternCanadaUS.shp",
@@ -76,7 +78,8 @@ def open_rgi_region(region_no):
                              "16_rgi60_LowLatitudes/16_rgi60_LowLatitudes.shp",
                              "17_rgi60_SouthernAndes/17_rgi60_SouthernAndes.shp",
                              "18_rgi60_NewZealand/18_rgi60_NewZealand.shp",
-                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp"]
+                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp",
+                             "05_rgi60_GreenlandPeriphery_clean/05_rgi60_GreenlandPeriphery_clean.shp"]
 
         # Open file 
         #print(region_file_names[region_no-1])
@@ -307,7 +310,7 @@ def print_10_largest_rgi(region_no, do_print=None):
 
 def multi_temporal_glims(region_no, do_print=None):
     """
-    Finds all the dates that the largest 3 glaciers have measurements for for each of the 19 regions from GLIMS.
+    Finds all the dates that the largest 3 glaciers have measurements for each of the 19 regions from GLIMS.
 
     Parameters
     ----------
@@ -491,11 +494,14 @@ def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, large
 
 def explode_glaciers(region_no, source):
     '''
-    Explodes (merges) all glacier polygons that touch one another into one polygon because these are part of a glacier catchment
+    Explodes (merges) all glacier polygons that touch one another into one polygon because these are part of a glacier catchment.
+    Adapted from:
+    https://stackoverflow.com/questions/47038407/dissolve-overlapping-polygons-with-gdal-ogr-while-keeping-non-connected-result
     
     Parameters
     ----------
-    region_no : Integer region number of the region with the polygons that need to be exploded, Accepted values are 1 through 19.
+    region_no : Integer region number of the region with the polygons that need to be exploded, Accepted values are 1 through 19
+                for GLIMS and 1 through 20 for RGI. Note that to open the region 5 cleaned shapefile, need set region_no to 20.
     source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
     
     Returns : 
@@ -543,7 +549,10 @@ def explode_glaciers(region_no, source):
             
     elif source == 'RGI':
         # Set up RGI output filename
-        output_fn = "data/rgi/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
+        if region_no == 20:
+            output_fn = "data/rgi/processed/ice-caps/exploded/exploded_clean_5.shp"
+        else:
+            output_fn = "data/rgi/processed/ice-caps/exploded/exploded_" + str(region_no) + ".shp"
         
         # List of RGI region shapefile names
         region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
@@ -564,7 +573,8 @@ def explode_glaciers(region_no, source):
                              "16_rgi60_LowLatitudes/16_rgi60_LowLatitudes.shp",
                              "17_rgi60_SouthernAndes/17_rgi60_SouthernAndes.shp",
                              "18_rgi60_NewZealand/18_rgi60_NewZealand.shp",
-                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp"]        
+                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp",
+                             "05_rgi60_GreenlandPeriphery_clean/05_rgi60_GreenlandPeriphery_clean.shp"]        
     
         # Check that the region hasn't already been processed
         if os.path.exists(output_fn) == False:
