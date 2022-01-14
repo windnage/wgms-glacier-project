@@ -118,7 +118,7 @@ def open_clean_glims(region_no):
 
 
 
-def pip(polygon1, polygon2):
+def pip(polygon1, polygon2, buffer_val=0):
     """
     Determines if a polygon is within another polygon (pip - polygon in polygon)
     
@@ -128,6 +128,8 @@ def pip(polygon1, polygon2):
     
     polygon2 : The polygon (in a geopandas dataframe) for which you want to test if polygon1 lies within it.
     
+    buffer_val : Optional argument to change the buffer value set on polygon2. Defalut is set to 0. Can input a float or an integer.
+    
     Returns
     -------
     pip_mask : Returns a Series of dtype('bool') with value True for each polygon1 geometry that is within polygon2.
@@ -135,7 +137,7 @@ def pip(polygon1, polygon2):
     
     # Check if the list of polygons in polygon1 is within polygon2. Do a buffer on polygon1 incase
     # there are any invalid polygons
-    pip_mask = polygon1.buffer(0).within(polygon2.loc[0, 'geometry'])
+    pip_mask = polygon1.buffer(0).within(polygon2.loc[0, 'geometry'].buffer(buffer_val))
     
     return pip_mask
 
@@ -216,7 +218,8 @@ def clean_glims(region_glims, fp):
             # Create first instance of glacier_latest_df so that we can append to it later
             glacier_latest_df = glacier[glacier['src_date'] == glacier_latest_date]
         else:
-            # Address error in GLIMS Region 13 G072126E38989N glacier
+            # Remove erroneous glaciers in GLIMS Region 13 (G072126E38989N glacier).
+            # See the 9-analyze-region-13-asia-central notebook for details.
             if (region_no == '13') and (unique == 'G072126E38989N'):
                 print('Fixing G072126E38989N')
                 glacier = glacier.drop([10927, 98745])
@@ -494,17 +497,19 @@ def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, large
 
 def explode_glaciers(region_no, source):
     '''
-    Explodes (merges) all glacier polygons that touch one another into one polygon because these are part of a glacier catchment.
+    Explodes (merges) all glacier polygons that touch one another into one polygon to create a glacier catchment.
     Adapted from:
     https://stackoverflow.com/questions/47038407/dissolve-overlapping-polygons-with-gdal-ogr-while-keeping-non-connected-result
     
     Parameters
     ----------
-    region_no : Integer region number of the region with the polygons that need to be exploded, Accepted values are 1 through 19
-                for GLIMS and 1 through 20 for RGI. Note that to open the region 5 cleaned shapefile, need set region_no to 20.
+    region_no : Integer region number of the region with the polygons that need to be exploded.
+                Accepted values are 1 through 19 for GLIMS and 1 through 20 for RGI. 
+                Note that to open the region 5 cleaned shapefile, need set region_no to 20.
     source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
     
-    Returns : 
+    Returns
+    ----------
     nothing: Saves a file of exploded shapefiles
     '''
     if source == 'GLIMS':
