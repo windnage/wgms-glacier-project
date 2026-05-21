@@ -5,11 +5,13 @@ Date: 3/3/2019
 
 This module contains functions that help to process RGI and GLIMS data. 
 It currently contains 4 functions:
-* open_rgi_region: Opens RGI data file for a particular region
+* open_raw_rgi: Opens a raw RGI data file for a particular region
+* open_clean_rgi: Open a cleaned RGI data file for a particular region
 * open_clean_glims: Opens a cleaned GLIMS data file for a particular region
 * pip: Determine if a glacier outline is within a larger glacier region
 * split_glims: Split the glims data into the 19 regions
 * clean_glims: Clean the glims regional files
+* clean_rgi: Clean the rgi regional files
 * print_10_largest_glims: Prints the ten largest glaciers for a particular region for GLIMS
 * print_10_largest_rgi: Prints the ten largest glaciers for a particular region for RGI
 * multi_temporal_glims: Finds all the dates that the largest 3 glaciers have measurements 
@@ -40,7 +42,7 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 import zipfile
 
 
-def open_rgi_region(region_no):
+def open_raw_rgi(region_no, version):
     '''
     Opens RGI shapefile for one of 19 glacial regions
     Note - To open the region 5 cleaned shapefile, need set region_no to 20
@@ -49,47 +51,58 @@ def open_rgi_region(region_no):
     ----------
     region_no : The region number as an integer. Accepted values are 1 through 20.
                 Note - To open the region 5 cleaned shapefile, need set region_no to 20
+    version   : RGI version as an integer. Accepted values are 6 or 7.
 
     Returns
     ----------
     rgi_region_df: Returns a geopandas dataframe of the shapefile for given region.
     '''
 
-    # root data directory
-    root_data_dir = "data/rgi/raw/"
+    # Create an array of the region data directories
+    root_data_dir = "data/rgi/raw/RGI-V" + str(version)
+    subdirs = [ f.path for f in os.scandir(root_data_dir) if f.is_dir() ]
+    rgi_file_paths = []
+    for i in range(len(subdirs)):
+        # Clean the directories so they all have forward slashes "/"
+        subsplit = subdirs[i].rsplit('\\', 1)
+        path = subdirs[i].replace('\\', '/') + '/' + subsplit[-1] + '.shp'
+        rgi_file_paths.append(path)
 
-    if region_no >= 1 and region_no <=20:        
-        # List of RGI region shapefile names
-        region_file_names = ["01_rgi60_Alaska/01_rgi60_Alaska.shp", 
-                             "02_rgi60_WesternCanadaUS/02_rgi60_WesternCanadaUS.shp",
-                             "03_rgi60_ArcticCanadaNorth/03_rgi60_ArcticCanadaNorth.shp", 
-                             "04_rgi60_ArcticCanadaSouth/04_rgi60_ArcticCanadaSouth.shp",
-                             "05_rgi60_GreenlandPeriphery/05_rgi60_GreenlandPeriphery.shp",
-                             "06_rgi60_Iceland/06_rgi60_Iceland.shp",
-                             "07_rgi60_Svalbard/07_rgi60_Svalbard.shp",
-                             "08_rgi60_Scandinavia/08_rgi60_Scandinavia.shp",
-                             "09_rgi60_RussianArctic/09_rgi60_RussianArctic.shp",
-                             "10_rgi60_NorthAsia/10_rgi60_NorthAsia.shp",
-                             "11_rgi60_CentralEurope/11_rgi60_CentralEurope.shp",
-                             "12_rgi60_CaucasusMiddleEast/12_rgi60_CaucasusMiddleEast.shp",
-                             "13_rgi60_CentralAsia/13_rgi60_CentralAsia.shp",
-                             "14_rgi60_SouthAsiaWest/14_rgi60_SouthAsiaWest.shp",
-                             "15_rgi60_SouthAsiaEast/15_rgi60_SouthAsiaEast.shp",
-                             "16_rgi60_LowLatitudes/16_rgi60_LowLatitudes.shp",
-                             "17_rgi60_SouthernAndes/17_rgi60_SouthernAndes.shp",
-                             "18_rgi60_NewZealand/18_rgi60_NewZealand.shp",
-                             "19_rgi60_AntarcticSubantarctic/19_rgi60_AntarcticSubantarctic.shp",
-                             "05_rgi60_GreenlandPeriphery_clean/05_rgi60_GreenlandPeriphery_clean.shp"]
-
-        # Open file 
+    if region_no >= 1 and region_no <=19:
+        # Open file based on the region_no
         #print(region_file_names[region_no-1])
-        rgi_region_df = gpd.read_file(root_data_dir + region_file_names[region_no-1])
+        rgi_region_df = gpd.read_file(rgi_file_paths[region_no-1])
     else:
         rgi_region_df = "-999"
         print("Specified region does not exist.")
     
     return rgi_region_df
 
+def open_clean_rgi(region_no, version):
+    '''
+    Opens RGI shapefile for one of 19 glacial regions
+    Note - To open the region 5 cleaned shapefile, need set region_no to 20
+
+    Parameters
+    ----------
+    region_no : The region number as an integer. Accepted values are 1 through 20.
+                Note - To open the region 5 cleaned shapefile, need set region_no to 20
+    version   : RGI version as an integer. Accepted values are 6 or 7.
+
+    Returns
+    ----------
+    rgi_region_df: Returns a geopandas dataframe of the shapefile for given region.
+    '''
+
+    if region_no >= 1 and region_no <=20:
+        # Open file based on the region_no
+        rgi_fp = "data/rgi/processed/RGI-V" + str(version) + "/cleaned/rgi_region_" + str(region_no) + "_cleaned.shp"
+        rgi_region_df = gpd.read_file(rgi_fp)
+    else:
+        rgi_region_df = "-999"
+        print("Specified region does not exist.")
+    
+    return rgi_region_df
 
 def open_clean_glims(region_no):
     '''
@@ -179,15 +192,16 @@ def split_glims(data, all_regions, region_name, fp):
     
     return
 
-def clean_glims(region_glims, fp):
+def clean_glims(region_df, fp_out, region_no):
     """
     Clean each GLIMS regional file: pull out only the glacier boundaries, remove extra columns, find latest date.
-    Then save the cleaned outlines to its own shapefile for later use.
+    Then save the cleaned outlines to their own shapefile.
 
     Parameters
     ----------
-    region_glims : Geodataframe containing polygons for one region of GLIMS data
-    fp : String containing the file path to the location where the region shapefile should be saved.
+    region_df : Geodataframe containing polygons for one region of GLIMS data
+    fp_out    : String containing the file path to the location where the region shapefile should be saved.
+    region_no : Integer containing the region number being cleaned: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18, or 19
 
     Returns
     -------
@@ -195,19 +209,22 @@ def clean_glims(region_glims, fp):
     """
     
     # Extract the glacier outlines: line_type = glac_bound
-    glac_bounds = region_glims[region_glims['line_type']=='glac_bound']
+    glac_bounds = region_df[region_df['line_type']=='glac_bound']
     
-    # Extract region number from the filepath (fp). Note this code is only being added to address the Region 13 GLIMS issue
-    region_no = fp[42:44]
+    # Only keep columns that are needed
+    if region_no == 5:
+        # Keep connectivity level (conn_lvl) if the region is Greenland because we will only  
+        # want glaciers with no or weak connectivity to the icesheet so need this attribute to get that
+        columns_to_keep = ['region_no', 'glac_id', 'area', 'db_area', 'width', 'length', 'min_elev', 'mean_elev', 'max_elev',
+                           'src_date', 'glac_name', 'geometry', 'conn_lvl']
+        glac_bounds_trimmed = glac_bounds[columns_to_keep]
+
+    else:
+        columns_to_keep = ['region_no', 'glac_id', 'area', 'db_area', 'width', 'length', 'min_elev', 'mean_elev', 'max_elev',
+                           'src_date', 'glac_name', 'geometry']
+        glac_bounds_trimmed = glac_bounds[columns_to_keep]
     
-    # Remove columns the are unneeded
-    glac_bounds_trimmed = glac_bounds.drop(
-                          ['line_type', 'anlys_id', 'anlys_time', 'rec_status', 'wgms_id', 
-                          'local_id', 'glac_stat', 'subm_id', 'release_dt', 'proc_desc', 'rc_id', 
-                          'geog_area', 'chief_affl', 'loc_unc_x', 'loc_unc_y', 'glob_unc_x', 
-                          'glob_unc_y', 'submitters', 'analysts'], axis=1)
-    
-    # Find the unique glaciers in region 1 by glac_id
+    # Find the unique glaciers in region by glac_id
     unique_glaciers = glac_bounds_trimmed.glac_id.unique()
     
     # Find the latest date for each unique glacier and create a new dataframe with just those rows
@@ -217,24 +234,88 @@ def clean_glims(region_glims, fp):
         if counter == 0:
             # Create first instance of glacier_latest_df so that we can append to it later
             glacier_latest_df = glacier[glacier['src_date'] == glacier_latest_date]
+            if len(glacier_latest_df) > 1:
+                #print(unique)
+                # If this is > 1 then there are multiple entries for the same glacier with the same date.
+                # Most of these are "intrnl_rock" but that have been mislabeled in the GLIMS database as 
+                # "glac_bound". Need to filter these out by selecting the one with the largest area.
+                # The largest one should be the actual outline of the glacier.
+                glacier_latest_df.reset_index(drop=True, inplace=True)
+                crs_code = "+proj=laea"
+                areas = glacier_latest_df['geometry'].to_crs(crs_code).area/10**6
+                max_index = areas.idxmax()
+                #print(max_index)
+                glacier_latest_df = glacier_latest_df[max_index:max_index+1]
         else:
-            # Remove erroneous glaciers in GLIMS Region 13 (G072126E38989N glacier).
-            # See the 9-analyze-region-13-asia-central notebook for details.
-            if (region_no == '13') and (unique == 'G072126E38989N'):
+            # Remove erroneous glaciers in GLIMS Region 13 (Fedchenko glacier ID: G072126E38989N).
+            # See the 7-analyze-region-13-asia-central notebook for details.
+            if (region_no == 13) and (unique == 'G072126E38989N'):
                 print('Fixing G072126E38989N')
-                glacier = glacier.drop([10927, 98745])
+                # Find the index of Fedchenko
+                fedchenko_2003 = glacier.loc[(glacier['glac_id'] == 'G072126E38989N') & \
+                         (glacier['src_date'] == '2003-08-08T06:09:43')]
+                glacier = glacier.drop([fedchenko_2003.index[0]])
                 glacier_latest_date = glacier['src_date'].max()
                 print(glacier_latest_date)
             # Append the other rows to glacier_latest_df
             glacier_latest_df_part = glacier[glacier['src_date'] == glacier_latest_date]
+            if len(glacier_latest_df_part) > 1:
+                #print(unique)
+                # If this is > 1 then there are multiple entries for the same glacier with the same date.
+                # Most of these are "intrnl_rock" but that have been mislabeled in the GLIMS database as 
+                # "glac_bound". Need to filter these out by selecting the one with the largest area.
+                # The largest one should be the actual outline of the glacier.
+                glacier_latest_df_part.reset_index(drop=True, inplace=True)
+                crs_code = "+proj=laea"
+                areas = glacier_latest_df_part['geometry'].to_crs(crs_code).area/10**6
+                max_index = areas.idxmax()
+                #print(max_index)
+                glacier_latest_df_part = glacier_latest_df_part[max_index:max_index+1]
             glacier_latest_df = glacier_latest_df.append(glacier_latest_df_part)
             
     # Save cleaned dataframe to a shapefile
-    glacier_latest_df.to_file(driver='ESRI Shapefile', filename=fp)
+    glacier_latest_df.to_file(driver='ESRI Shapefile', filename=fp_out)
     
     return
 
-def print_10_largest_glims(region_no, do_print=None):
+def clean_rgi(region_df, fp_out, region_no, version):
+    """
+    Clean each RGI regional file: Remove extra columns and rename some columns for consistency.
+    Then save the cleaned outlines to their own shapefile.
+
+    Parameters
+    ----------
+    region_df : Geodataframe containing polygons for one region of RGI data
+    fp_out    : String containing the file path to the location where the region shapefile should be saved.
+    region_no : Integer containing the region number being cleaned: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18, or 19
+    version   : Integer containing the RGI version
+
+    Returns
+    -------
+    Nothing. Saves the cleaned outlines to its own shapefile.
+    """
+    
+    # Remove unneeded columns to make the data smaller and easier to work with
+    if version == 6:
+        rgi_trimmed = region_df.drop(['EndDate', '02Region', 'Zmin', 'Zmax', 'Zmed', 'Slope', 'Aspect', 
+                                      'Lmax', 'Status', 'Form', 'TermType', 'Surging', 'Linkages'], axis=1)
+    elif version > 6:
+        rgi_trimmed = region_df.drop(['o2region', 'anlys_id', 'subm_id', 'utm_zone', 'surge_type', 
+                                      'term_type', 'is_rgi6', 'termlon', 'termlat', 'zmin_m', 'zmax_m', 'zmed_m', 
+                                      'zmean_m', 'slope_deg', 'aspect_deg', 'aspect_sec', 'dem_source', 'lmax_m'], axis=1)
+    
+    # Update certain attribute names for consistency across versions
+    if version > 6:
+        rgi_trimmed.rename(columns={'glac_name': 'Name', 'glims_id': 'GLIMSId', 'rgi_id': 'RGIId', 
+                                     'src_date': 'BgnDate', 'area_km2': 'Area', 'conn_lvl': 'Connect'}, inplace=True)
+        
+    
+    # Save the shapefile with the new names
+    rgi_trimmed.to_file(driver='ESRI Shapefile', filename=fp_out)
+    
+    return
+
+def print_10_largest_glims(region_no, version, do_print=None):
     """
     Opens and prints the list of 10 largest glaciers for a specified region for GLIMS and
     returns the data as a pandas dataframe.
@@ -242,7 +323,8 @@ def print_10_largest_glims(region_no, do_print=None):
     Parameters
     ----------
     region_no : The region number as an integer. Accepted values are 1 through 19.
-    do_print : String, if set to "false", will not print. Default is to print.
+    version   : The version of the GLIMS data as an integer
+    do_print  : String, if set to "false", will not print. Default is to print.
 
     Returns
     -------
@@ -262,7 +344,7 @@ def print_10_largest_glims(region_no, do_print=None):
                     "Antarctic and Subantarctic"]
     
     # Open GLIMS csv file for specified region with 10 largest glaciers
-    glims_largest_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.csv"
+    glims_largest_fp = "data/glims/processed/glims_version_" + str(version) + "/largest/glims_region_" + str(region_no) + "_largest.csv"
     glims_largest = pd.read_csv(glims_largest_fp)
     if do_print != "false":
         print('GLIMS 10 Largest glaciers and their size for Region ' + str(region_no) + ' - ' + region_names[region_no-1] + ':')
@@ -272,7 +354,7 @@ def print_10_largest_glims(region_no, do_print=None):
     
     return glims_largest
 
-def print_10_largest_rgi(region_no, do_print=None):
+def print_10_largest_rgi(region_no, version, do_print=None):
     """
     Opens and prints the list of 10 largest glaciers for a specified region for RGI and
     returns the data as a pandas dataframe.
@@ -280,7 +362,8 @@ def print_10_largest_rgi(region_no, do_print=None):
     Parameters
     ----------
     region_no : The region number as an integer. Accepted values are 1 through 19.
-    do_print : String, if set to "false", will not print. Default is to print.
+    do_print  : String, if set to "false", will not print. Default is to print.
+    version   : RGI version as integer
 
     Returns
     -------
@@ -300,7 +383,7 @@ def print_10_largest_rgi(region_no, do_print=None):
                     "Antarctic and Subantarctic"]
     
     # Open RGI csv file for specified region with 10 largest glaciers
-    rgi_largest_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.csv"
+    rgi_largest_fp = "data/rgi/processed/RGI-V" + str(version) + "/largest/rgi_region_" + str(region_no) + "_largest.csv"
     rgi_largest = pd.read_csv(rgi_largest_fp)
     
     if do_print != "false":
@@ -409,15 +492,16 @@ def find_glacier_clean_glims(glims_id, region_no):
     
     return glims_glacier
 
-def ten_largest(data, region_no, source):
+def ten_largest(data, region_no, source, version):
     '''
     Finds the 10 largest glaciers in a region and saves them to a csv file
 
     Parameters
     ----------
-    data : Geodataframe containing all glacier polygons for a region
+    data      : Geodataframe containing all glacier polygons for a region
     region_no : Integer with the region number. Accepted values are 1 through 19.
-    source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
+    source    : String with the source of the glacier outlines. Accepted values are GLIMS or RGI
+    version   : Data version number as string
 
     Returns
     ----------
@@ -429,7 +513,8 @@ def ten_largest(data, region_no, source):
         ten_largest_df = data[['glac_id', 'db_area', 'glac_name', 'src_date']].nlargest(10, 'db_area')
         
         # Save to csv file if it doesn't already exist
-        glims_largest_csv_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.csv"
+        glims_largest_csv_fp = "data/glims/processed/glims_version_" + version + "/largest/glims_region_" + \
+                                str(region_no) + "_largest.csv"
         if os.path.exists(glims_largest_csv_fp) == False:
             print(region_no)
             ten_largest_df.to_csv(glims_largest_csv_fp, index=False)
@@ -437,11 +522,11 @@ def ten_largest(data, region_no, source):
             print("GLIMS Region " + str(region_no) + " largest 10 CSV file already exists")
         
     elif source == 'RGI':
-        # Find 10 largest
+        # Find 10 larges
         ten_largest_df = data[['GLIMSId', 'Area', 'Name', 'BgnDate']].nlargest(10, 'Area')
         
         # Save to csv file if it doesn't already exist
-        rgi_largest_csv_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.csv"
+        rgi_largest_csv_fp = "data/rgi/processed/RGI-V" + version + "/largest/rgi_region_" + str(region_no) + "_largest.csv"
         if os.path.exists(rgi_largest_csv_fp) == False:
             print(region_no)
             ten_largest_df.to_csv(rgi_largest_csv_fp, index=False)
@@ -453,7 +538,7 @@ def ten_largest(data, region_no, source):
     
     return
 
-def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, largest_5_df, region_no, source):
+def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, largest_5_df, region_no, source, version):
     '''
     Saves the 5 largest glacier outlines in a region to a shapefile
 
@@ -464,8 +549,9 @@ def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, large
     largest_3_df : Geodataframe containing the third largest glacier polygon for a region
     largest_4_df : Geodataframe containing the fourth largest glacier polygon for a region
     largest_5_df : Geodataframe containing the fifth largest glacier polygon for a region
-    region_no : Integer with the region number. Accepted values are 1 through 19
-    source :  String with the source of the glacier outlines. Accepted values are GLIMS or RGI
+    region_no    : Integer with the region number. Accepted values are 1 through 19
+    source       : String with the source of the glacier outlines. Accepted values are GLIMS or RGI
+    version      : version of the data as a string
 
     Returns
     ----------
@@ -474,9 +560,9 @@ def save_5_largest(largest_1_df, largest_2_df, largest_3_df, largest_4_df, large
     
     # Set file path based on source selected
     if source == 'GLIMS':
-        largest_5_fp = "data/glims/processed/largest/glims_region_" + str(region_no) + "_largest.shp"
+        largest_5_fp = "data/glims/processed/glims_version_" + version + "/largest/glims_region_" + str(region_no) + "_largest.shp"
     elif source == 'RGI':
-        largest_5_fp = "data/rgi/processed/largest/rgi_region_" + str(region_no) + "_largest.shp"
+        largest_5_fp = "data/rgi/processed/RGI-V" + version + "/largest/rgi_region_" + str(region_no) + "_largest.shp"
     else:
         print("Incorrect source input")
         return
