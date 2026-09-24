@@ -2,6 +2,7 @@
 WGMS Project Module
 Author: Ann Windnagel
 Date: 3/3/2019
+Updated: May 2025 and May 2026 to work with newer versions of GLIMS
 
 This module contains functions that help to process RGI and GLIMS data. 
 It currently contains 4 functions:
@@ -33,6 +34,7 @@ It currently contains 4 functions:
 import geopandas as gpd
 import pandas as pd
 import os
+from datetime import datetime
 import fiona
 from shapely.ops import cascaded_union
 from shapely.geometry import shape, mapping
@@ -216,16 +218,18 @@ def clean_glims(region_df, fp_out, region_no):
         # Keep connectivity level (conn_lvl) if the region is Greenland because we will only  
         # want glaciers with no or weak connectivity to the icesheet so need this attribute to get that
         columns_to_keep = ['region_no', 'glac_id', 'area', 'db_area', 'width', 'length', 'min_elev', 'mean_elev', 'max_elev',
-                           'src_date', 'glac_name', 'geometry', 'conn_lvl']
+                           'src_date', 'anlys_time', 'glac_name', 'geometry', 'conn_lvl']
         glac_bounds_trimmed = glac_bounds[columns_to_keep]
 
     else:
         columns_to_keep = ['region_no', 'glac_id', 'area', 'db_area', 'width', 'length', 'min_elev', 'mean_elev', 'max_elev',
-                           'src_date', 'glac_name', 'geometry']
+                           'src_date', 'anlys_time', 'glac_name', 'geometry']
         glac_bounds_trimmed = glac_bounds[columns_to_keep]
     
     # Find the unique glaciers in region by glac_id
     unique_glaciers = glac_bounds_trimmed.glac_id.unique()
+    
+    num_affected = 0 # counter for number of glaciers with different src_date and anlys_time
     
     # Find the latest date for each unique glacier and create a new dataframe with just those rows
     for counter, unique in enumerate(unique_glaciers):
@@ -235,19 +239,47 @@ def clean_glims(region_df, fp_out, region_no):
             # Create first instance of glacier_latest_df so that we can append to it later
             glacier_latest_df = glacier[glacier['src_date'] == glacier_latest_date]
             if len(glacier_latest_df) > 1:
-                #print(unique)
+                print("first row", unique)
                 # If this is > 1 then there are multiple entries for the same glacier with the same date.
                 # Most of these are "intrnl_rock" but that have been mislabeled in the GLIMS database as 
                 # "glac_bound". Need to filter these out by selecting the one with the largest area.
-                # The largest one should be the actual outline of the glacier.
+                # The largest one should be the actual outline of the glacier. Discovered that for V20250603 this isn't true.
+                # Some glaciers have good outlines that are the same src_date (date of satellite image) but different sizes 
+                # but that have difference anlys_time dates meaning that the images were reanalyzed and a different size was calculated.
+                # Ex: Yanong Glacier (G096685E29331N) in Region 15. There are 3 outlines with same src_date (2005-09-08): 2 outlines 
+                # with size 179.589 and anlys_time of 2014-04-15 and one with area 165.449 and anlys_time 2018-07-01T. 
+                # Presumably the newer anlys_time  is the most accurate.
                 glacier_latest_df.reset_index(drop=True, inplace=True)
-                crs_code = "+proj=laea"
-                areas = glacier_latest_df['geometry'].to_crs(crs_code).area/10**6
-                max_index = areas.idxmax()
-                #print(max_index)
+                
+                # Check uniqueness of src_date, anlys_time, and db_area. The ideal scenario is when there is only one unique value for each.
+                # This does not always happen, as noted above. To check for the scenario where the outline has the same src_date but
+                # different anlys_time and db_area, use the following if statement and then select the outline with the lates anlys_time.
+                src_date_unq = glacier.src_date.unique()
+                anlys_time_unq = glacier.anlys_time.unique()
+                area_unq = glacier.db_area.unique()
+                if len(src_date_unq) == 1 and len(src_date_unq) != len(anlys_time_unq) and len(area_unq) != 1:
+                    #print('glac_id: ', unique)
+                    #print('src_date: ', src_date_unq, len(src_date_unq))
+                    #print('anlys_time: ', anlys_time_unq, len(anlys_time_unq))
+                    #print('db_area: ', area_unq, len(area_unq))
+                    num_affected += 1
+                    #print("affected:", num_affected)
+                    #print(glacier)
+                    all_anlys_dates = pd.to_datetime(glacier_latest_df_part['anlys_time'].str.slice(0,10))
+                    #print("all dates: ", all_anlys_dates)
+                    max_index = all_anlys_dates.idxmax()
+                    #print("date index: ", newest_anlys_index)
+                    #print(glacier_latest_df_part[newest_anlys_index:newest_anlys_index+1])
+                    #print('')
+                
+                else:
+                    crs_code = "+proj=laea"
+                    areas = glacier_latest_df['geometry'].to_crs(crs_code).area/10**6
+                    max_index = areas.idxmax()
+                    #print(max_index)
                 glacier_latest_df = glacier_latest_df[max_index:max_index+1]
         else:
-            # Remove erroneous glaciers in GLIMS Region 13 (Fedchenko glacier ID: G072126E38989N).
+            # Special section to remove erroneous glaciers in GLIMS Region 13 (Fedchenko glacier ID: G072126E38989N).
             # See the 7-analyze-region-13-asia-central notebook for details.
             if (region_no == 13) and (unique == 'G072126E38989N'):
                 print('Fixing G072126E38989N')
@@ -257,24 +289,57 @@ def clean_glims(region_df, fp_out, region_no):
                 glacier = glacier.drop([fedchenko_2003.index[0]])
                 glacier_latest_date = glacier['src_date'].max()
                 print(glacier_latest_date)
-            # Append the other rows to glacier_latest_df
+            # Create temp data frame to hold the rows for this glacier
             glacier_latest_df_part = glacier[glacier['src_date'] == glacier_latest_date]
+            
             if len(glacier_latest_df_part) > 1:
-                #print(unique)
+                #print("other rows", unique)
                 # If this is > 1 then there are multiple entries for the same glacier with the same date.
                 # Most of these are "intrnl_rock" but that have been mislabeled in the GLIMS database as 
                 # "glac_bound". Need to filter these out by selecting the one with the largest area.
-                # The largest one should be the actual outline of the glacier.
+                # The largest one should be the actual outline of the glacier. Discovered that for V20250603 this isn't true.
+                # Some glaciers have good outlines that are the same src_date (date of satellite image) but different sizes 
+                # but that have difference anlys_time dates meaning that the images were reanalyzed and a different size was calculated.
+                # Ex: Yanong Glacier (G096685E29331N) i  n Region 15. There are 3 outlines with same src_date (2005-09-08): 2 outlines 
+                # with size 179.589 and anlys_time of 2014-04-15 and one with area 165.449 and anlys_time 2018-07-01T. 
+                # Presumably the newer anlys_time is the most accurate.
                 glacier_latest_df_part.reset_index(drop=True, inplace=True)
-                crs_code = "+proj=laea"
-                areas = glacier_latest_df_part['geometry'].to_crs(crs_code).area/10**6
-                max_index = areas.idxmax()
-                #print(max_index)
+                
+                # Check uniqueness of src_date, anlys_time, and db_area. The ideal scenario is when there is only one unique value for each.
+                # This does not always happen, as noted above. To check for the scenario where the outline has the same src_date but
+                # different anlys_time and db_area, use the following if statement and then select the outline with the lates anlys_time.
+                src_date_unq = glacier.src_date.unique()
+                anlys_time_unq = glacier.anlys_time.unique()
+                area_unq = glacier.db_area.unique()
+                if len(src_date_unq) == 1 and len(src_date_unq) != len(anlys_time_unq) and len(area_unq) != 1:
+                    #print('glac_id: ', unique)
+                    #print('src_date: ', src_date_unq, len(src_date_unq))
+                    #print('anlys_time: ', anlys_time_unq, len(anlys_time_unq))
+                    #print('db_area: ', area_unq, len(area_unq))
+                    num_affected += 1
+                    #print("affected:", num_affected)
+                    #print(glacier)
+                    all_anlys_dates = pd.to_datetime(glacier_latest_df_part['anlys_time'].str.slice(0,10))
+                    #print("all dates: ", all_anlys_dates)
+                    max_index = all_anlys_dates.idxmax()
+                    #print("date index: ", newest_anlys_index)
+                    #print(glacier_latest_df_part[newest_anlys_index:newest_anlys_index+1])
+                    #print('')
+                
+                else:
+                    crs_code = "+proj=laea"
+                    areas = glacier_latest_df_part['geometry'].to_crs(crs_code).area/10**6
+                    max_index = areas.idxmax()
+                    #print(max_index)
                 glacier_latest_df_part = glacier_latest_df_part[max_index:max_index+1]
+        
+            # Append the glacier_latest_df_part rows to glacier_latest_df
             glacier_latest_df = glacier_latest_df.append(glacier_latest_df_part)
             
+    print("affected:", num_affected)
     # Save cleaned dataframe to a shapefile
     glacier_latest_df.to_file(driver='ESRI Shapefile', filename=fp_out)
+    print("Saving file ", fp_out)
     
     return
 
